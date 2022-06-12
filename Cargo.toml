@@ -1,0 +1,11 @@
+[package]
+name = "qrust"
+version = "1.0.0"
+edition = "2021"
+
+
+[dependencies]
+fltk = "^1.2"
+qrcode-generator = "4.1.6"
+isahc = "1.7.2"
+webbrowser = "0.7.1"
