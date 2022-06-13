@@ -2,12 +2,13 @@
 
 mod qrcode;
 mod update;
+mod dirs;
 
 use fltk::
 {app, button::Button, frame::Frame, image::SharedImage, input::Input, prelude::*, window::Window, enums::CallbackTrigger};
-use std::{error::Error, path::Path};
-use update::{is_out_of_date, download};
-use qrcode::qr_code;
+use update::*;
+use qrcode::*;
+use dirs::*;
 
 fn center() -> (i32, i32) 
 {
@@ -17,10 +18,10 @@ fn center() -> (i32, i32)
     )
 }
 
-fn prompt_update_gui() -> Result<bool, Box<dyn Error>>
-{
-    let update;
+// Incoming spaghetti code
 
+fn prompt_update_gui() -> Result<(), Box<dyn std::error::Error>>
+{
     let app = app::App::default();
     let mut wind = Window::default()
     .with_size(200, 200)
@@ -30,35 +31,31 @@ fn prompt_update_gui() -> Result<bool, Box<dyn Error>>
     frame.set_label("A newer version is available.\n\nInstall it now?");
 
     let mut yes = Button::new(10, 150, 80, 40, "Yes");
-    yes.set_callback(move |_| frame.set_label("Hello World!"));
+    yes.set_callback(move |_| {app.quit(); download()});
 
-    let mut no = Button::new(10, 150, 80, 40, "Yes");
-    no.set_callback();
+    let mut no = Button::new(110, 150, 80, 40, "No");
+    no.set_callback(move |_| {app.quit(); main_gui().unwrap()});
 
     wind.show();
     app.run().unwrap();
-    Ok(false)
+    Ok(())
 }
 
 
-fn main_gui() -> Result<(), Box<dyn Error>> 
+fn main_gui() -> Result<(), Box<dyn std::error::Error>> 
 {
-    qr_code("amogus");
-
-    let mut outdated = false;
-    let ofd = is_out_of_date();
-    
-    if ofd.is_ok() {outdated = ofd.unwrap();}
+    let mut image_loc = String::from(format!("{}\\image.png", get()));
+    let image_loc_clone = image_loc.clone();
 
     let app = app::App::default();
     let mut wind = Window::default().with_size(400, 300);
     let mut frame = Frame::default().size_of(&wind);
 
-    let mut image = SharedImage::load("file.png")?;
-    let mut input = Input::new(10, 10, 60, 20, "Joe");
-
+    let mut image = SharedImage::load(image_loc)?;
     image.scale(64, 64, true, true);
     frame.set_image(Some(image));
+
+    let mut input = Input::new(10, 10, 60, 20, "Joe");
     
     let (s, r) = app::channel::<bool>();
 
@@ -66,7 +63,7 @@ fn main_gui() -> Result<(), Box<dyn Error>>
     input.emit(s, true);
 
 
-    wind.make_resizable(true);
+    wind.make_resizable(false);
     wind.show();
 
 
@@ -76,13 +73,14 @@ fn main_gui() -> Result<(), Box<dyn Error>>
         {
             Some(msg) =>
             {
-                if msg
+                if msg && input.value() != ""
                 {
-                    image = SharedImage::load("file.png")?;
+                    qr_code(&input.value(), &image_loc_clone);
+                    image = SharedImage::load(image_loc_clone.clone())?;
                     frame.set_image(Some(image));
                     println!("{}", input.value());
                     frame.redraw();
-                    app.redraw();
+                    //app.redraw();
                 }
             }
             None => (),
@@ -94,12 +92,11 @@ fn main_gui() -> Result<(), Box<dyn Error>>
 
 fn main()
 {
+    make_dirs();
+    
     let ofd = is_out_of_date();
-    //let outdated = if ofd.is_ok() {ofd.unwrap()} else {false};
-    let outdated = true;
+    let outdated = if ofd.is_ok() {ofd.unwrap()} else {false};
 
-    if outdated
-    {
-        prompt_update_gui();
-    }   
+    if outdated {prompt_update_gui().unwrap();}
+    else {main_gui().unwrap();}
 }
