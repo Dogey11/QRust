@@ -21,13 +21,18 @@ pub fn make_dirs()
     }
 }
 
-pub fn get() -> String
+pub fn get() -> Result<String, ()>
 {
     if let Some(base_dirs) = BaseDirs::new() 
     {
         let parent_dir = format!("{}\\Dogey11", base_dirs.data_local_dir().display());
-        return format!("{}\\QRRust", parent_dir);
+        return Ok(format!("{}\\QRRust", parent_dir));
     }
+    else {Err(())}
+}
 
+pub fn get_home() -> String
+{
+    if let Some(base_dirs) = BaseDirs::new() {return base_dirs.home_dir().to_str().unwrap().to_string()}
     "".to_string()
 }
